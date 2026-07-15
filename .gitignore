@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# Secrets & DB
+backend/.env
+backend/*.db
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# macOS
+.DS_Store
