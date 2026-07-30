@@ -10,5 +10,5 @@ python-docx==1.1.2
 apscheduler==3.10.4
 python-multipart==0.0.12
 python-dotenv==1.0.1
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.10
 lxml==5.3.0
