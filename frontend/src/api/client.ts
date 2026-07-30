@@ -9,6 +9,21 @@ const BASE = import.meta.env.VITE_API_URL
 
 export const api = axios.create({ baseURL: BASE });
 
+const TOKEN_KEY = "auth_token";
+
+export const getToken = () => localStorage.getItem(TOKEN_KEY);
+export const setToken = (token: string) => localStorage.setItem(TOKEN_KEY, token);
+export const clearToken = () => localStorage.removeItem(TOKEN_KEY);
+
+api.interceptors.request.use((config) => {
+  const token = getToken();
+  if (token) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export interface Job {
   id: string;
   company_name: string;
@@ -109,4 +124,85 @@ export const scoreResume = async (job_id: string, file: File) => {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return data;
+};
+
+export interface User {
+  id: number;
+  email: string;
+  name?: string;
+  phone?: string;
+  resume_filename?: string;
+  resume_uploaded_at?: string;
+  created_at: string;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  token_type: string;
+  user: User;
+}
+
+export interface Application {
+  id: number;
+  job_id?: string;
+  job_title: string;
+  company_name: string;
+  apply_url?: string;
+  status: string;
+  notes?: string;
+  applied_at: string;
+}
+
+export const signup = async (email: string, password: string, name?: string) => {
+  const { data } = await api.post<AuthResponse>("/auth/signup", { email, password, name });
+  return data;
+};
+
+export const login = async (email: string, password: string) => {
+  const { data } = await api.post<AuthResponse>("/auth/login", { email, password });
+  return data;
+};
+
+export const fetchMe = async () => {
+  const { data } = await api.get<User>("/auth/me");
+  return data;
+};
+
+export const updateProfile = async (fields: { name?: string; phone?: string }) => {
+  const { data } = await api.put<User>("/profile", fields);
+  return data;
+};
+
+export const uploadResume = async (file: File) => {
+  const form = new FormData();
+  form.append("file", file);
+  const { data } = await api.post<User>("/profile/resume", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+};
+
+export const fetchApplications = async () => {
+  const { data } = await api.get<Application[]>("/applications");
+  return data;
+};
+
+export const createApplication = async (payload: {
+  job_id?: string;
+  job_title: string;
+  company_name: string;
+  apply_url?: string;
+  status?: string;
+}) => {
+  const { data } = await api.post<Application>("/applications", payload);
+  return data;
+};
+
+export const updateApplication = async (id: number, fields: { status?: string; notes?: string }) => {
+  const { data } = await api.patch<Application>(`/applications/${id}`, fields);
+  return data;
+};
+
+export const deleteApplication = async (id: number) => {
+  await api.delete(`/applications/${id}`);
 };

@@ -7,10 +7,10 @@ interface Props {
 }
 
 const PLATFORM_COLORS: Record<string, string> = {
-  greenhouse: "bg-green-50 text-green-700",
-  lever: "bg-blue-50 text-blue-700",
-  ashby: "bg-purple-50 text-purple-700",
-  playwright: "bg-gray-50 text-gray-600",
+  greenhouse: "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300",
+  lever: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+  ashby: "bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
+  playwright: "bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
 };
 
 function CompanyLogo({ name, logo }: { name: string; logo?: string }) {
@@ -18,7 +18,7 @@ function CompanyLogo({ name, logo }: { name: string; logo?: string }) {
   if (logo && !err) {
     return (
       <img src={logo} alt={name} onError={() => setErr(true)}
-        className="w-10 h-10 rounded-xl object-contain bg-white border border-gray-100 p-1" />
+        className="w-10 h-10 rounded-xl object-contain bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-1" />
     );
   }
   return (
@@ -39,28 +39,28 @@ export default function JobCard({ job }: Props) {
 
   return (
     <>
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-200">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md hover:border-gray-200 dark:hover:border-gray-700 transition-all duration-200">
         <div className="p-5">
           {/* Header */}
           <div className="flex items-start gap-3">
             <CompanyLogo name={job.company_name} logo={job.company_logo ?? undefined} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-semibold text-gray-900 text-base leading-tight truncate">
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-base leading-tight truncate">
                   {job.title}
                 </h3>
                 {job.job_id && (
-                  <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-xs rounded font-mono shrink-0">
+                  <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-xs rounded font-mono shrink-0">
                     #{job.job_id.slice(0, 8)}
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="text-sm text-gray-600 font-medium">{job.company_name}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-300 font-medium">{job.company_name}</span>
                 {job.location && (
                   <>
-                    <span className="text-gray-300">·</span>
-                    <span className="text-sm text-gray-500 flex items-center gap-1">
+                    <span className="text-gray-300 dark:text-gray-600">·</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                           d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -72,8 +72,8 @@ export default function JobCard({ job }: Props) {
                 )}
                 {job.department && (
                   <>
-                    <span className="text-gray-300">·</span>
-                    <span className="text-xs text-gray-500">{job.department}</span>
+                    <span className="text-gray-300 dark:text-gray-600">·</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{job.department}</span>
                   </>
                 )}
               </div>
@@ -84,13 +84,13 @@ export default function JobCard({ job }: Props) {
           </div>
 
           {/* Short description */}
-          <p className="mt-3 text-sm text-gray-600 leading-relaxed line-clamp-2">
+          <p className="mt-3 text-sm text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2">
             {job.short_description}
           </p>
 
           {/* Footer */}
-          <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-50">
-            <span className="text-xs text-gray-400">
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-50 dark:border-gray-800">
+            <span className="text-xs text-gray-400 dark:text-gray-500">
               {new Date(job.scraped_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </span>
             <button

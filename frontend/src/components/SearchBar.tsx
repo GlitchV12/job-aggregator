@@ -29,7 +29,7 @@ export default function SearchBar({ onSearch, onScrapeUrl, isScrapingUrl }: Prop
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto">
       <div className="relative flex items-center">
-        <span className="absolute left-4 text-gray-400">
+        <span className="absolute left-4 text-gray-400 dark:text-gray-500">
           {mode === "url" ? (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -47,9 +47,9 @@ export default function SearchBar({ onSearch, onScrapeUrl, isScrapingUrl }: Prop
           value={input}
           onChange={(e) => handleInput(e.target.value)}
           placeholder="Search jobs or paste a careers page URL..."
-          className="w-full pl-12 pr-32 py-4 text-base bg-white border border-gray-200 rounded-2xl shadow-sm
+          className="w-full pl-12 pr-32 py-4 text-base bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm
                      focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                     placeholder-gray-400 transition-all"
+                     placeholder-gray-400 dark:placeholder-gray-500 transition-all"
         />
         <button
           type="submit"
@@ -73,7 +73,7 @@ export default function SearchBar({ onSearch, onScrapeUrl, isScrapingUrl }: Prop
         </button>
       </div>
       {mode === "url" && (
-        <p className="mt-2 text-xs text-indigo-600 text-center">
+        <p className="mt-2 text-xs text-indigo-600 dark:text-indigo-400 text-center">
           Detected a URL — will scrape jobs directly from this careers page
         </p>
       )}

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchJobs, fetchJobsCount, fetchLocations, fetchCompanies, scrapeUrl, Job } from "../api/client";
 import SearchBar from "../components/SearchBar";
 import JobCard from "../components/JobCard";
+import Navbar from "../components/Navbar";
 
 const PAGE_SIZE = 20;
 
@@ -46,13 +47,13 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
       <button
         onClick={() => onChange(page - 1)}
         disabled={page === 1}
-        className="px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
         ← Prev
       </button>
       {pages.map((p, i) =>
         p === "..." ? (
-          <span key={`ellipsis-${i}`} className="px-2 py-2 text-sm text-gray-400">…</span>
+          <span key={`ellipsis-${i}`} className="px-2 py-2 text-sm text-gray-400 dark:text-gray-500">…</span>
         ) : (
           <button
             key={p}
@@ -60,7 +61,7 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
             className={`w-9 h-9 text-sm rounded-lg border transition-all
               ${page === p
                 ? "bg-indigo-600 text-white border-indigo-600 font-semibold"
-                : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:text-indigo-600"}`}
+                : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400"}`}
           >
             {p}
           </button>
@@ -69,7 +70,7 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
       <button
         onClick={() => onChange(page + 1)}
         disabled={page === totalPages}
-        className="px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
         Next →
       </button>
@@ -129,7 +130,7 @@ function LocationPicker({
             if (e.key === "Enter") { apply(input.trim()); }
             if (e.key === "Escape") setOpen(false);
           }}
-          className="pl-8 pr-7 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-700
+          className="pl-8 pr-7 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200
                      focus:outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-200 w-44"
         />
         {input && (
@@ -145,11 +146,11 @@ function LocationPicker({
       </div>
 
       {open && (filtered.length > 0 || input.trim()) && (
-        <div className="absolute top-full mt-1 left-0 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1 max-h-64 overflow-y-auto">
+        <div className="absolute top-full mt-1 left-0 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-20 py-1 max-h-64 overflow-y-auto">
           {input.trim() && !filtered.some((l) => l.toLowerCase() === input.trim().toLowerCase()) && (
             <button
               onClick={() => apply(input.trim())}
-              className="w-full text-left px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 flex items-center gap-2"
+              className="w-full text-left px-3 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-700 flex items-center gap-2"
             >
               <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -161,8 +162,8 @@ function LocationPicker({
             <button
               key={loc}
               onClick={() => apply(loc)}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2
-                ${value === loc ? "text-indigo-600 font-medium bg-indigo-50" : "text-gray-700"}`}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2
+                ${value === loc ? "text-indigo-600 dark:text-indigo-400 font-medium bg-indigo-50 dark:bg-gray-700" : "text-gray-700 dark:text-gray-200"}`}
             >
               <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -267,35 +268,17 @@ export default function Home() {
   const isFiltered = search || company || scrapedJobs.length > 0 || activeFilterCount > 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
-                  d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <span className="font-bold text-gray-900 text-lg">JobScope</span>
-            <span className="hidden sm:inline text-xs text-gray-400 border border-gray-200 px-2 py-0.5 rounded-full">
-              Direct from source
-            </span>
-          </div>
-          <div className="text-sm text-gray-500">
-            {companies.length > 0 && <span>{companies.length} companies tracked</span>}
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <Navbar />
 
       {/* Hero */}
-      <div className="bg-white border-b border-gray-100 py-10 px-4">
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 py-10 px-4">
         <div className="max-w-6xl mx-auto space-y-5">
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900">Jobs, straight from the source.</h1>
-            <p className="mt-2 text-gray-500 text-base">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Jobs, straight from the source.</h1>
+            <p className="mt-2 text-gray-500 dark:text-gray-400 text-base">
               No middlemen. Scraped directly from company career pages. Paste any URL to scrape on demand.
+              {companies.length > 0 && ` Tracking ${companies.length} companies.`}
             </p>
           </div>
 
@@ -330,7 +313,7 @@ export default function Home() {
               <select
                 value={dateFilter}
                 onChange={(e) => { setDateFilter(e.target.value); resetPage(); }}
-                className="pl-8 pr-6 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-700
+                className="pl-8 pr-6 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200
                            focus:outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-200 appearance-none cursor-pointer"
               >
                 {DATE_OPTIONS.map((opt) => (
@@ -345,7 +328,7 @@ export default function Home() {
             {isFiltered && (
               <button
                 onClick={clearAllFilters}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg bg-white hover:border-gray-300 transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:border-gray-300 transition-all"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -375,7 +358,7 @@ export default function Home() {
               {scrapeError}
             </div>
           ) : (
-            <h2 className="text-base font-semibold text-gray-800">
+            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">
               {scrapedJobs.length > 0
                 ? `${scrapedJobs.length} jobs scraped from URL`
                 : isFiltered
@@ -384,7 +367,7 @@ export default function Home() {
             </h2>
           )}
           {!scrapedJobs.length && total > 0 && (
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-gray-400 dark:text-gray-500">
               Page {page} of {totalPages}
             </span>
           )}
@@ -394,17 +377,17 @@ export default function Home() {
         {isLoading && !scrapedJobs.length && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
+              <div key={i} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 animate-pulse">
                 <div className="flex gap-3">
-                  <div className="w-10 h-10 bg-gray-100 rounded-xl" />
+                  <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-xl" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-100 rounded w-3/4" />
-                    <div className="h-3 bg-gray-100 rounded w-1/2" />
+                    <div className="h-4 bg-gray-100 dark:bg-gray-800 rounded w-3/4" />
+                    <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-1/2" />
                   </div>
                 </div>
                 <div className="mt-3 space-y-2">
-                  <div className="h-3 bg-gray-100 rounded" />
-                  <div className="h-3 bg-gray-100 rounded w-5/6" />
+                  <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded" />
+                  <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-5/6" />
                 </div>
               </div>
             ))}
@@ -414,14 +397,14 @@ export default function Home() {
         {/* Empty state */}
         {!isLoading && displayJobs.length === 0 && !scrapeError && (
           <div className="text-center py-16">
-            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <h3 className="text-base font-semibold text-gray-700">No jobs found</h3>
-            <p className="text-sm text-gray-400 mt-1">
+            <h3 className="text-base font-semibold text-gray-700 dark:text-gray-300">No jobs found</h3>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
               Try a different search, adjust the filters, or paste a company careers URL above.
             </p>
           </div>
@@ -442,8 +425,8 @@ export default function Home() {
         )}
       </main>
 
-      <footer className="text-center py-8 text-xs text-gray-400 border-t border-gray-100 mt-8">
-        JobScope scrapes jobs directly from company career pages. Data is refreshed every 6 hours.
+      <footer className="text-center py-8 text-xs text-gray-400 dark:text-gray-600 border-t border-gray-100 dark:border-gray-800 mt-8">
+        JobAggregator scrapes jobs directly from company career pages. Data is refreshed every 6 hours.
       </footer>
     </div>
   );

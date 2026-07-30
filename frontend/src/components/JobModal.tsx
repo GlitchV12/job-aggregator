@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Job, fetchJob, analyzeJD } from "../api/client";
+import { Job, fetchJob, analyzeJD, createApplication } from "../api/client";
 import ATSKeywords from "./ATSKeywords";
 import ResumeUpload from "./ResumeUpload";
+import { useAuth } from "../context/AuthContext";
 
 const PLATFORM_COLORS: Record<string, string> = {
   greenhouse: "bg-green-50 text-green-700",
@@ -40,11 +41,11 @@ function DescriptionBlock({ text }: { text: string }) {
   if (isHtml) {
     return (
       <div
-        className="prose prose-sm prose-indigo max-w-none
-                   prose-headings:text-gray-800 prose-headings:font-semibold
-                   prose-p:text-gray-600 prose-p:leading-relaxed
-                   prose-li:text-gray-600 prose-strong:text-gray-800
-                   prose-a:text-indigo-600 prose-a:no-underline hover:prose-a:underline"
+        className="prose prose-sm dark:prose-invert prose-indigo max-w-none
+                   prose-headings:text-gray-800 dark:prose-headings:text-gray-200 prose-headings:font-semibold
+                   prose-p:text-gray-600 dark:prose-p:text-gray-400 prose-p:leading-relaxed
+                   prose-li:text-gray-600 dark:prose-li:text-gray-400 prose-strong:text-gray-800 dark:prose-strong:text-gray-200
+                   prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-a:no-underline hover:prose-a:underline"
         dangerouslySetInnerHTML={{ __html: decoded }}
       />
     );
@@ -54,7 +55,7 @@ function DescriptionBlock({ text }: { text: string }) {
     return (
       <div className="space-y-3">
         {paragraphs.map((p, i) => (
-          <p key={i} className="text-sm text-gray-600 leading-relaxed">
+          <p key={i} className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
             {p.replace(/\n/g, " ")}
           </p>
         ))}
@@ -62,7 +63,7 @@ function DescriptionBlock({ text }: { text: string }) {
     );
   }
   return (
-    <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{decoded}</p>
+    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap">{decoded}</p>
   );
 }
 
@@ -72,8 +73,11 @@ interface Props {
 }
 
 export default function JobModal({ job, onClose }: Props) {
+  const { user } = useAuth();
   const [showTemplate, setShowTemplate] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [markedApplied, setMarkedApplied] = useState(false);
+  const [markingApplied, setMarkingApplied] = useState(false);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -110,6 +114,22 @@ export default function JobModal({ job, onClose }: Props) {
     }
   };
 
+  const markAsApplied = async () => {
+    setMarkingApplied(true);
+    try {
+      await createApplication({
+        job_id: job.id,
+        job_title: job.title,
+        company_name: job.company_name,
+        apply_url: applyUrl,
+        status: "applied",
+      });
+      setMarkedApplied(true);
+    } finally {
+      setMarkingApplied(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -119,19 +139,19 @@ export default function JobModal({ job, onClose }: Props) {
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
 
         {/* Sticky header */}
-        <div className="p-5 border-b border-gray-100 flex items-start gap-3 shrink-0">
+        <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex items-start gap-3 shrink-0">
           <CompanyLogo name={job.company_name} logo={job.company_logo ?? undefined} />
           <div className="flex-1 min-w-0">
-            <h2 className="font-bold text-gray-900 text-lg leading-tight">{job.title}</h2>
+            <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg leading-tight">{job.title}</h2>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="text-sm text-gray-600 font-medium">{job.company_name}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-300 font-medium">{job.company_name}</span>
               {job.location && (
                 <>
-                  <span className="text-gray-300">·</span>
-                  <span className="text-sm text-gray-500 flex items-center gap-1">
+                  <span className="text-gray-300 dark:text-gray-600">·</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                         d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -143,8 +163,8 @@ export default function JobModal({ job, onClose }: Props) {
               )}
               {job.department && (
                 <>
-                  <span className="text-gray-300">·</span>
-                  <span className="text-xs text-gray-500">{job.department}</span>
+                  <span className="text-gray-300 dark:text-gray-600">·</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{job.department}</span>
                 </>
               )}
             </div>
@@ -153,18 +173,18 @@ export default function JobModal({ job, onClose }: Props) {
                 {platform}
               </span>
               {job.job_id && (
-                <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-xs rounded font-mono">
+                <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-xs rounded font-mono">
                   #{job.job_id.slice(0, 8)}
                 </span>
               )}
-              <span className="text-xs text-gray-400 ml-auto">
+              <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">
                 Added {new Date(job.scraped_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
               </span>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors"
+            className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -178,15 +198,15 @@ export default function JobModal({ job, onClose }: Props) {
           {/* Description */}
           {(detail?.description || job.short_description) && (
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">Job Description</h4>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Job Description</h4>
               <DescriptionBlock text={detail?.description || job.short_description} />
             </div>
           )}
 
           {/* AI Analysis */}
-          <div className="bg-indigo-50 rounded-2xl p-4 space-y-4">
+          <div className="bg-indigo-50 dark:bg-gray-800 rounded-2xl p-4 space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
+              <h4 className="text-sm font-semibold text-indigo-900 dark:text-indigo-300 flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.347.745A4 4 0 0112 20.5a4 4 0 01-3.79-2.745l-.347-.745z" />
@@ -227,7 +247,7 @@ export default function JobModal({ job, onClose }: Props) {
                   <div className="flex items-center justify-between mb-2">
                     <button
                       onClick={() => setShowTemplate(!showTemplate)}
-                      className="text-sm font-semibold text-indigo-800 flex items-center gap-1 hover:text-indigo-600"
+                      className="text-sm font-semibold text-indigo-800 dark:text-indigo-300 flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400"
                     >
                       <svg className={`w-4 h-4 transition-transform ${showTemplate ? "rotate-90" : ""}`}
                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -237,7 +257,7 @@ export default function JobModal({ job, onClose }: Props) {
                     </button>
                     {showTemplate && (
                       <button onClick={copyTemplate}
-                        className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                        className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-1">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                             d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -247,7 +267,7 @@ export default function JobModal({ job, onClose }: Props) {
                     )}
                   </div>
                   {showTemplate && (
-                    <pre className="bg-white border border-indigo-100 rounded-xl p-4 text-xs text-gray-700
+                    <pre className="bg-white dark:bg-gray-900 border border-indigo-100 dark:border-gray-700 rounded-xl p-4 text-xs text-gray-700 dark:text-gray-300
                                     whitespace-pre-wrap font-mono overflow-x-auto max-h-64 overflow-y-auto">
                       {analysis.resume_template}
                     </pre>
@@ -262,20 +282,34 @@ export default function JobModal({ job, onClose }: Props) {
         </div>
 
         {/* Sticky footer */}
-        <div className="p-4 border-t border-gray-100 shrink-0 space-y-2 bg-white">
-          <button
-            onClick={() => window.open(applyUrl, "_blank", "noopener,noreferrer")}
-            className="w-full flex items-center justify-center gap-2 px-5 py-3
-                       bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl
-                       transition-all shadow-sm text-sm cursor-pointer"
-          >
-            Apply on Company Site
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </button>
-          <p className="text-xs text-gray-400 text-center truncate px-2">{applyUrl}</p>
+        <div className="p-4 border-t border-gray-100 dark:border-gray-800 shrink-0 space-y-2 bg-white dark:bg-gray-900">
+          <div className="flex gap-2">
+            <button
+              onClick={() => window.open(applyUrl, "_blank", "noopener,noreferrer")}
+              className="flex-1 flex items-center justify-center gap-2 px-5 py-3
+                         bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl
+                         transition-all shadow-sm text-sm cursor-pointer"
+            >
+              Apply on Company Site
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </button>
+            {user && (
+              <button
+                onClick={markAsApplied}
+                disabled={markingApplied || markedApplied}
+                className="shrink-0 flex items-center justify-center gap-2 px-4 py-3
+                           border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-semibold rounded-xl
+                           hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400
+                           disabled:opacity-60 disabled:cursor-default transition-all text-sm cursor-pointer"
+              >
+                {markedApplied ? "Added to tracker" : markingApplied ? "Adding..." : "Mark as applied"}
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-center truncate px-2">{applyUrl}</p>
         </div>
       </div>
     </div>

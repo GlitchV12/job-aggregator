@@ -70,8 +70,8 @@ export default function ResumeUpload({ jobId }: Props) {
 
   return (
     <div>
-      <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-        <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+        <svg className="w-4 h-4 text-indigo-500 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
@@ -85,7 +85,7 @@ export default function ResumeUpload({ jobId }: Props) {
           onDragLeave={() => setDragging(false)}
           onDrop={onDrop}
           className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all
-            ${dragging ? "border-indigo-400 bg-indigo-50" : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"}`}
+            ${dragging ? "border-indigo-400 bg-indigo-50 dark:bg-indigo-950" : "border-gray-200 dark:border-gray-700 hover:border-indigo-300 hover:bg-gray-50 dark:hover:bg-gray-800"}`}
         >
           <input
             ref={inputRef}
@@ -100,22 +100,22 @@ export default function ResumeUpload({ jobId }: Props) {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              <p className="text-sm text-gray-500">Analyzing your resume with AI...</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Analyzing your resume with AI...</p>
             </div>
           ) : (
             <>
-              <svg className="w-8 h-8 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
-              <p className="text-sm text-gray-600 font-medium">Drop your resume or click to upload</p>
-              <p className="text-xs text-gray-400 mt-1">PDF, DOCX, or TXT</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Drop your resume or click to upload</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">PDF, DOCX, or TXT</p>
             </>
           )}
         </div>
       )}
 
-      {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+      {error && <p className="text-xs text-red-500 dark:text-red-400 mt-2">{error}</p>}
 
       {result && (
         <div className="space-y-4">
@@ -124,10 +124,10 @@ export default function ResumeUpload({ jobId }: Props) {
             <div className="flex-1 space-y-3">
               {result.matched_keywords.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-green-700 mb-1">Matched Keywords</p>
+                  <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-1">Matched Keywords</p>
                   <div className="flex flex-wrap gap-1.5">
                     {result.matched_keywords.map((kw) => (
-                      <span key={kw} className="px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded-md border border-green-200">
+                      <span key={kw} className="px-2 py-0.5 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 text-xs rounded-md border border-green-200 dark:border-green-900">
                         {kw}
                       </span>
                     ))}
@@ -136,10 +136,10 @@ export default function ResumeUpload({ jobId }: Props) {
               )}
               {result.missing_keywords.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-red-600 mb-1">Missing Keywords</p>
+                  <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">Missing Keywords</p>
                   <div className="flex flex-wrap gap-1.5">
                     {result.missing_keywords.map((kw) => (
-                      <span key={kw} className="px-2 py-0.5 bg-red-50 text-red-600 text-xs rounded-md border border-red-200">
+                      <span key={kw} className="px-2 py-0.5 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 text-xs rounded-md border border-red-200 dark:border-red-900">
                         {kw}
                       </span>
                     ))}
@@ -150,11 +150,11 @@ export default function ResumeUpload({ jobId }: Props) {
           </div>
 
           {result.suggestions.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-              <p className="text-xs font-semibold text-amber-800 mb-2">Improvement Suggestions</p>
+            <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 rounded-xl p-3">
+              <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-2">Improvement Suggestions</p>
               <ul className="space-y-1.5">
                 {result.suggestions.map((s, i) => (
-                  <li key={i} className="text-xs text-amber-700 flex items-start gap-2">
+                  <li key={i} className="text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
                     <span className="font-bold mt-0.5">{i + 1}.</span>
                     {s}
                   </li>
@@ -165,7 +165,7 @@ export default function ResumeUpload({ jobId }: Props) {
 
           <button
             onClick={() => setResult(null)}
-            className="text-xs text-indigo-600 hover:underline"
+            className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
           >
             Upload a different resume
           </button>

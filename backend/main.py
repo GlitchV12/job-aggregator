@@ -11,9 +11,9 @@ from sqlmodel import Session, select
 
 load_dotenv()
 
-from db import create_db_and_tables, engine
+from db import create_db_and_tables, run_search_index_setup, engine
 from models import Company, Job
-from routers import jobs, companies, scrape, analyze
+from routers import jobs, companies, scrape, analyze, auth, profile, applications
 from services.scrape_service import scrape_company
 
 scheduler = AsyncIOScheduler()
@@ -69,6 +69,7 @@ async def seed_companies_on_startup():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
+    run_search_index_setup()
     await seed_companies_on_startup()
     scheduler.add_job(refresh_all_companies, "interval", hours=6, id="refresh_jobs")
     scheduler.start()
@@ -101,6 +102,9 @@ app.include_router(jobs.router)
 app.include_router(companies.router)
 app.include_router(scrape.router)
 app.include_router(analyze.router)
+app.include_router(auth.router)
+app.include_router(profile.router)
+app.include_router(applications.router)
 
 
 @app.get("/api/health")
