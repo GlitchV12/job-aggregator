@@ -8,6 +8,7 @@ import {
   signup as apiSignup,
   fetchMe,
 } from "../api/client";
+import { VISITED_KEY } from "../constants";
 
 interface AuthContextValue {
   user: User | null;
@@ -51,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     clearToken();
     setUser(null);
+    localStorage.removeItem(VISITED_KEY);
   };
 
   const refreshUser = async () => {

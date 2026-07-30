@@ -2,8 +2,7 @@ import { useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Landing from "../pages/Landing";
-
-const VISITED_KEY = "jobagg_visited";
+import { VISITED_KEY } from "../constants";
 
 export default function RootGate() {
   const { user, loading } = useAuth();
