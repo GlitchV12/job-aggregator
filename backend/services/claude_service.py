@@ -1,14 +1,17 @@
 """
-AI service using OpenAI GPT-4o-mini for ATS keyword extraction,
+AI service using Google Gemini (free tier) for ATS keyword extraction,
 resume template generation, and resume-vs-JD match scoring.
 """
 import json
 import os
 import re
 
-from openai import AsyncOpenAI
+from google import genai
+from google.genai import types
 
 _client = None
+
+MODEL_NAME = "gemini-flash-latest"
 
 SYSTEM_PROMPT = (
     "You are an expert career coach and ATS (Applicant Tracking System) specialist. "
@@ -17,10 +20,10 @@ SYSTEM_PROMPT = (
 )
 
 
-def get_client() -> AsyncOpenAI:
+def get_client() -> genai.Client:
     global _client
     if _client is None:
-        _client = AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
+        _client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
     return _client
 
 
@@ -52,16 +55,16 @@ Job Description:
 
 Respond ONLY with the JSON object, no other text."""
 
-    resp = await get_client().chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.3,
-        response_format={"type": "json_object"},
+    resp = await get_client().aio.models.generate_content(
+        model=MODEL_NAME,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            temperature=0.3,
+            response_mime_type="application/json",
+        ),
     )
-    return json.loads(resp.choices[0].message.content)
+    return json.loads(_clean_json(resp.text))
 
 
 async def score_resume(job_title: str, job_description: str, resume_text: str) -> dict:
@@ -90,13 +93,13 @@ Resume:
 
 Respond ONLY with the JSON object, no other text."""
 
-    resp = await get_client().chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.3,
-        response_format={"type": "json_object"},
+    resp = await get_client().aio.models.generate_content(
+        model=MODEL_NAME,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            temperature=0.3,
+            response_mime_type="application/json",
+        ),
     )
-    return json.loads(resp.choices[0].message.content)
+    return json.loads(_clean_json(resp.text))
