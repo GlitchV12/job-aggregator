@@ -1,9 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import { fetchJobs, fetchJobsCount, fetchLocations, fetchCompanies, scrapeUrl, Job } from "../api/client";
 import SearchBar from "../components/SearchBar";
 import JobCard from "../components/JobCard";
 import Navbar from "../components/Navbar";
+
+const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } };
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
 
 const PAGE_SIZE = 20;
 
@@ -272,36 +276,58 @@ export default function Home() {
       <Navbar />
 
       {/* Hero */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 py-10 px-4">
-        <div className="max-w-6xl mx-auto space-y-5">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Jobs, straight from the source.</h1>
+      <div className="relative overflow-hidden bg-gradient-to-b from-indigo-50 via-purple-50/50 to-gray-50
+                       dark:from-gray-900 dark:via-indigo-950/20 dark:to-gray-950 py-12 px-4">
+        {/* Ambient blobs */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="blob absolute -top-24 -left-16 w-72 h-72 rounded-full bg-indigo-200/50 dark:bg-indigo-600/10 blur-3xl" />
+          <div className="blob blob-delay-1 absolute -top-16 right-[-8%] w-80 h-80 rounded-full bg-pink-200/40 dark:bg-fuchsia-600/10 blur-3xl" />
+          <div className="blob blob-delay-2 absolute bottom-[-30%] left-[35%] w-72 h-72 rounded-full bg-purple-200/40 dark:bg-purple-600/10 blur-3xl" />
+        </div>
+
+        {/* Fade into page background */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-gray-50 dark:to-gray-950" />
+
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={stagger}
+          className="relative max-w-6xl mx-auto space-y-5"
+        >
+          <motion.div variants={fadeUp} className="text-center">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+              Jobs, <span className="text-gradient">straight from the source</span>.
+            </h1>
             <p className="mt-2 text-gray-500 dark:text-gray-400 text-base">
               No middlemen. Scraped directly from company career pages. Paste any URL to scrape on demand.
               {companies.length > 0 && ` Tracking ${companies.length} companies.`}
             </p>
-          </div>
+          </motion.div>
 
-          <SearchBar onSearch={handleSearch} onScrapeUrl={handleScrapeUrl} isScrapingUrl={isScrapingUrl} />
+          <motion.div variants={fadeUp}>
+            <SearchBar onSearch={handleSearch} onScrapeUrl={handleScrapeUrl} isScrapingUrl={isScrapingUrl} />
+          </motion.div>
 
           {/* Quick company filters */}
-          <div className="flex flex-wrap justify-center gap-2">
+          <motion.div variants={fadeUp} className="flex flex-wrap justify-center gap-2">
             {QUICK_FILTERS.map((name) => (
-              <button
+              <motion.button
                 key={name}
                 onClick={() => handleCompanyFilter(name)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all
+                whileHover={{ scale: 1.06 }}
+                whileTap={{ scale: 0.96 }}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors
                   ${company === name
-                    ? "bg-indigo-600 text-white border-indigo-600"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:text-indigo-600"}`}
+                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-transparent shadow-sm"
+                    : "bg-white/70 dark:bg-gray-800/70 backdrop-blur text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400"}`}
               >
                 {name}
-              </button>
+              </motion.button>
             ))}
-          </div>
+          </motion.div>
 
           {/* Filter row */}
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+          <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-3 pt-1">
             <LocationPicker value={locationFilter} onChange={handleLocationChange} locations={locations} />
 
             {/* Date filter */}
@@ -313,7 +339,7 @@ export default function Home() {
               <select
                 value={dateFilter}
                 onChange={(e) => { setDateFilter(e.target.value); resetPage(); }}
-                className="pl-8 pr-6 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200
+                className="pl-8 pr-6 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur text-gray-700 dark:text-gray-200
                            focus:outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-200 appearance-none cursor-pointer"
               >
                 {DATE_OPTIONS.map((opt) => (
@@ -328,7 +354,7 @@ export default function Home() {
             {isFiltered && (
               <button
                 onClick={clearAllFilters}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:border-gray-300 transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur hover:border-gray-300 transition-all"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -341,8 +367,8 @@ export default function Home() {
                 )}
               </button>
             )}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
 
       {/* Main content */}

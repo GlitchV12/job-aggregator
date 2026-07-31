@@ -47,9 +47,9 @@ export default function SearchBar({ onSearch, onScrapeUrl, isScrapingUrl }: Prop
           value={input}
           onChange={(e) => handleInput(e.target.value)}
           placeholder="Search jobs or paste a careers page URL..."
-          className="w-full pl-12 pr-32 py-4 text-base bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm
-                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                     placeholder-gray-400 dark:placeholder-gray-500 transition-all"
+          className="w-full pl-12 pr-32 py-4 text-base bg-white/90 dark:bg-gray-900/90 backdrop-blur text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm
+                     hover:shadow-md focus:outline-none focus:ring-4 focus:ring-indigo-200 dark:focus:ring-indigo-500/20 focus:border-indigo-300 dark:focus:border-indigo-600
+                     placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-200"
         />
         <button
           type="submit"
