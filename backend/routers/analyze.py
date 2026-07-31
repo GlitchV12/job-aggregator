@@ -2,9 +2,9 @@ import json
 import io
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlmodel import Session
-from models import Job, JDAnalysis, AnalyzeJDRequest, JDAnalysisResponse, KeywordItem, ResumeScoreResponse
+from models import Job, JDAnalysis, AnalyzeJDRequest, JDAnalysisResponse, KeywordItem, ResumeScoreResponse, TranslateRequest, TranslateResponse
 from db import get_session
-from services.claude_service import analyze_jd, score_resume
+from services.claude_service import analyze_jd, score_resume, translate_to_english
 
 router = APIRouter(prefix="/api/analyze", tags=["analyze"])
 
@@ -98,3 +98,14 @@ async def score_resume_against_jd(
         missing_keywords=result.get("missing_keywords", []),
         suggestions=result.get("suggestions", []),
     )
+
+
+@router.post("/translate", response_model=TranslateResponse)
+async def translate_text(request: TranslateRequest):
+    if not request.text.strip():
+        raise HTTPException(status_code=422, detail="No text provided")
+    try:
+        translated = await translate_to_english(request.text)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
+    return TranslateResponse(translated=translated)

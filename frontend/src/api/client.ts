@@ -116,6 +116,11 @@ export const analyzeJD = async (job_id: string) => {
   return data;
 };
 
+export const translateText = async (text: string) => {
+  const { data } = await api.post<{ translated: string }>("/analyze/translate", { text });
+  return data.translated;
+};
+
 export const scoreResume = async (job_id: string, file: File) => {
   const form = new FormData();
   form.append("job_id", job_id);

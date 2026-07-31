@@ -67,6 +67,23 @@ Respond ONLY with the JSON object, no other text."""
     return json.loads(_clean_json(resp.text))
 
 
+async def translate_to_english(text: str) -> str:
+    """Translate job posting text to English, preserving any HTML tags."""
+    prompt = f"""Translate the following job posting content to English. If it contains HTML tags,
+preserve the tags and structure exactly and translate only the visible text inside them.
+Respond with only the translated content, no commentary, no markdown code fences.
+
+Content:
+{text[:12000]}"""
+
+    resp = await get_client().aio.models.generate_content(
+        model=MODEL_NAME,
+        contents=prompt,
+        config=types.GenerateContentConfig(temperature=0.2),
+    )
+    return _clean_json(resp.text)
+
+
 async def score_resume(job_title: str, job_description: str, resume_text: str) -> dict:
     """Score a resume against a JD and return match analysis."""
     prompt = f"""Compare this resume against the job description and return a JSON object:

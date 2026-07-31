@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Job, fetchJob, analyzeJD, createApplication } from "../api/client";
+import { Job, fetchJob, analyzeJD, createApplication, translateText } from "../api/client";
 import ATSKeywords from "./ATSKeywords";
 import ResumeUpload from "./ResumeUpload";
 import { useAuth } from "../context/AuthContext";
@@ -78,8 +78,8 @@ export default function JobModal({ job, onClose }: Props) {
   const [copied, setCopied] = useState(false);
   const [markedApplied, setMarkedApplied] = useState(false);
   const [markingApplied, setMarkingApplied] = useState(false);
-  const [translate, setTranslate] = useState(false);
-  const [translateStatus, setTranslateStatus] = useState<"idle" | "opening" | "opened">("idle");
+  const [translatedDescription, setTranslatedDescription] = useState<string | null>(null);
+  const [showOriginal, setShowOriginal] = useState(false);
   const [translateProgress, setTranslateProgress] = useState(0);
   const [translateLog, setTranslateLog] = useState<string | null>(null);
 
@@ -103,37 +103,61 @@ export default function JobModal({ job, onClose }: Props) {
     mutationFn: () => analyzeJD(job.id),
   });
 
+  const rawDescription = detail?.description || job.short_description;
+
+  const { mutate: runTranslate, isPending: translating } = useMutation({
+    mutationFn: () => {
+      console.log("[Translate] Sending description to /api/analyze/translate. Length:", rawDescription.length);
+      return translateText(decodeEntities(rawDescription));
+    },
+    onSuccess: (result) => {
+      console.log("[Translate] Success. Translated length:", result.length);
+      setTranslatedDescription(result);
+      setShowOriginal(false);
+      setTranslateProgress(100);
+      setTranslateLog(`Translated successfully at ${new Date().toLocaleTimeString()}.`);
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+        ?? (err as Error)?.message ?? "Unknown error";
+      console.error("[Translate] Failed:", msg);
+      setTranslateLog(`Translation failed at ${new Date().toLocaleTimeString()}: ${msg}`);
+    },
+  });
+
+  useEffect(() => {
+    if (!translating) return;
+    console.log("[Translate] Requesting translation...");
+    setTranslateProgress(0);
+    setTranslateLog(`Translating job description via Gemini at ${new Date().toLocaleTimeString()}...`);
+    const start = Date.now();
+    const estimatedDuration = 3500;
+    let raf: number;
+    const tick = () => {
+      const pct = Math.min(90, Math.round(((Date.now() - start) / estimatedDuration) * 90));
+      setTranslateProgress(pct);
+      if (translating) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [translating]);
+
+  const handleTranslateToggle = () => {
+    if (translatedDescription) {
+      setShowOriginal(!showOriginal);
+      console.log("[Translate] Toggled view. Showing:", !showOriginal ? "original" : "translated");
+      return;
+    }
+    runTranslate();
+  };
+
   const platform = job.company_url.includes("greenhouse") ? "greenhouse"
     : job.company_url.includes("lever") ? "lever"
     : job.company_url.includes("ashby") ? "ashby"
     : "playwright";
 
   const applyUrl = job.apply_url || job.company_url;
-  const translatedApplyUrl = `https://translate.google.com/translate?sl=auto&tl=en&u=${encodeURIComponent(applyUrl)}`;
-
-  const handleTranslateClick = () => {
-    console.log("[Translate] EN clicked. Original URL:", applyUrl);
-    console.log("[Translate] Translated URL:", translatedApplyUrl);
-    setTranslate(true);
-    setTranslateStatus("opening");
-    setTranslateProgress(0);
-    setTranslateLog(`Requesting translation via Google Translate at ${new Date().toLocaleTimeString()}...`);
-
-    const start = Date.now();
-    const duration = 900;
-    const tick = () => {
-      const pct = Math.min(100, Math.round(((Date.now() - start) / duration) * 100));
-      setTranslateProgress(pct);
-      if (pct < 100) {
-        requestAnimationFrame(tick);
-      } else {
-        setTranslateStatus("opened");
-        setTranslateLog(`Opened translated tab at ${new Date().toLocaleTimeString()}. If nothing appeared, check your browser's popup-blocker icon in the address bar.`);
-        console.log("[Translate] Anchor click dispatched, new tab should be open now:", translatedApplyUrl);
-      }
-    };
-    requestAnimationFrame(tick);
-  };
 
   const copyTemplate = () => {
     if (analysis?.resume_template) {
@@ -225,10 +249,53 @@ export default function JobModal({ job, onClose }: Props) {
         <div className="flex-1 overflow-y-auto p-5 space-y-6">
 
           {/* Description */}
-          {(detail?.description || job.short_description) && (
+          {rawDescription && (
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Job Description</h4>
-              <DescriptionBlock text={detail?.description || job.short_description} />
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Job Description</h4>
+                <button
+                  onClick={handleTranslateToggle}
+                  disabled={translating}
+                  title="Translate this description to English, in place"
+                  className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors
+                    ${translatedDescription && !showOriginal
+                      ? "bg-indigo-50 dark:bg-indigo-950 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300"
+                      : "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400"}
+                    disabled:opacity-60 disabled:cursor-wait`}
+                >
+                  {translating ? (
+                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9l4.5-4.5m0 0l4.5 4.5m-4.5-4.5V21" />
+                    </svg>
+                  )}
+                  {translating
+                    ? "Translating..."
+                    : translatedDescription
+                      ? (showOriginal ? "Show English" : "Show original")
+                      : "Translate to English"}
+                </button>
+              </div>
+
+              {translating && (
+                <div className="w-full h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden mb-2">
+                  <div
+                    className="h-full bg-indigo-500 dark:bg-indigo-400 transition-all duration-150 ease-out"
+                    style={{ width: `${translateProgress}%` }}
+                  />
+                </div>
+              )}
+
+              <DescriptionBlock text={translatedDescription && !showOriginal ? translatedDescription : rawDescription} />
+
+              {translateLog && (
+                <p className="mt-2 text-xs text-indigo-600 dark:text-indigo-400">{translateLog}</p>
+              )}
             </div>
           )}
 
@@ -325,37 +392,6 @@ export default function JobModal({ job, onClose }: Props) {
                   d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </button>
-            <a
-              href={translatedApplyUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={handleTranslateClick}
-              title="Open the posting translated to English in a new tab"
-              className={`relative overflow-hidden shrink-0 flex items-center justify-center gap-1.5 px-3 py-3
-                         border font-semibold rounded-xl transition-all text-sm cursor-pointer
-                         ${translate
-                           ? "bg-indigo-50 dark:bg-indigo-950 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300"
-                           : "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400"}`}
-            >
-              {translateStatus === "opening" ? (
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9l4.5-4.5m0 0l4.5 4.5m-4.5-4.5V21" />
-                </svg>
-              )}
-              EN
-              {translateStatus === "opening" && (
-                <div
-                  className="absolute bottom-0 left-0 h-0.5 bg-indigo-500 dark:bg-indigo-400 transition-all duration-100 ease-linear"
-                  style={{ width: `${translateProgress}%` }}
-                />
-              )}
-            </a>
             {user && (
               <button
                 onClick={markAsApplied}
@@ -370,11 +406,6 @@ export default function JobModal({ job, onClose }: Props) {
             )}
           </div>
           <p className="text-xs text-gray-400 dark:text-gray-500 text-center truncate px-2">{applyUrl}</p>
-          {translateLog && (
-            <p className="text-xs text-indigo-600 dark:text-indigo-400 text-center px-2 leading-snug">
-              {translateLog}
-            </p>
-          )}
         </div>
       </div>
     </div>

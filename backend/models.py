@@ -106,6 +106,14 @@ class ResumeScoreResponse(SQLModel):
     suggestions: list[str]
 
 
+class TranslateRequest(SQLModel):
+    text: str
+
+
+class TranslateResponse(SQLModel):
+    translated: str
+
+
 class SignupRequest(SQLModel):
     email: str
     password: str
