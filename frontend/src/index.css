@@ -51,34 +51,3 @@ body {
   background-clip: text;
   color: transparent;
 }
-
-/* Liquid-glass search bar sheen sweep */
-@keyframes glassShine {
-  0% { transform: translateX(-120%) skewX(-20deg); }
-  35%, 100% { transform: translateX(220%) skewX(-20deg); }
-}
-.glass-shine { animation: glassShine 4.5s ease-in-out infinite; }
-
-/* Solid orbiting shapes behind the glass search bar, for the backdrop-blur to refract */
-@keyframes orbitDrift {
-  0% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(10px, -8px) scale(1.1); }
-  50% { transform: translate(-6px, 6px) scale(0.9); }
-  75% { transform: translate(8px, 8px) scale(1.03); }
-  100% { transform: translate(0, 0) scale(1); }
-}
-.glass-orbit-1 { animation: orbitDrift 6s ease-in-out infinite; }
-.glass-orbit-2 { animation: orbitDrift 8s ease-in-out infinite reverse; animation-delay: -2s; }
-.glass-orbit-3 { animation: orbitDrift 7s ease-in-out infinite; animation-delay: -4s; }
-
-@keyframes edgePulse {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 0.9; transform: scale(1.25); }
-}
-.edge-spill { animation: edgePulse 3.2s ease-in-out infinite; }
-
-/* True refraction: distorts + blurs whatever sits behind the glass, not just a translucent tint */
-.liquid-glass-refract {
-  backdrop-filter: blur(10px) saturate(1.6) url(#liquid-glass-distortion);
-  -webkit-backdrop-filter: blur(10px) saturate(1.6);
-}
