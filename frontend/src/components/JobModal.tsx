@@ -79,6 +79,9 @@ export default function JobModal({ job, onClose }: Props) {
   const [markedApplied, setMarkedApplied] = useState(false);
   const [markingApplied, setMarkingApplied] = useState(false);
   const [translate, setTranslate] = useState(false);
+  const [translateStatus, setTranslateStatus] = useState<"idle" | "opening" | "opened">("idle");
+  const [translateProgress, setTranslateProgress] = useState(0);
+  const [translateLog, setTranslateLog] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -107,6 +110,30 @@ export default function JobModal({ job, onClose }: Props) {
 
   const applyUrl = job.apply_url || job.company_url;
   const translatedApplyUrl = `https://translate.google.com/translate?sl=auto&tl=en&u=${encodeURIComponent(applyUrl)}`;
+
+  const handleTranslateClick = () => {
+    console.log("[Translate] EN clicked. Original URL:", applyUrl);
+    console.log("[Translate] Translated URL:", translatedApplyUrl);
+    setTranslate(true);
+    setTranslateStatus("opening");
+    setTranslateProgress(0);
+    setTranslateLog(`Requesting translation via Google Translate at ${new Date().toLocaleTimeString()}...`);
+
+    const start = Date.now();
+    const duration = 900;
+    const tick = () => {
+      const pct = Math.min(100, Math.round(((Date.now() - start) / duration) * 100));
+      setTranslateProgress(pct);
+      if (pct < 100) {
+        requestAnimationFrame(tick);
+      } else {
+        setTranslateStatus("opened");
+        setTranslateLog(`Opened translated tab at ${new Date().toLocaleTimeString()}. If nothing appeared, check your browser's popup-blocker icon in the address bar.`);
+        console.log("[Translate] Anchor click dispatched, new tab should be open now:", translatedApplyUrl);
+      }
+    };
+    requestAnimationFrame(tick);
+  };
 
   const copyTemplate = () => {
     if (analysis?.resume_template) {
@@ -298,24 +325,37 @@ export default function JobModal({ job, onClose }: Props) {
                   d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </button>
-            <button
-              onClick={() => {
-                window.open(translatedApplyUrl, "_blank", "noopener,noreferrer");
-                setTranslate(true);
-              }}
+            <a
+              href={translatedApplyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleTranslateClick}
               title="Open the posting translated to English in a new tab"
-              className={`shrink-0 flex items-center justify-center gap-1.5 px-3 py-3
+              className={`relative overflow-hidden shrink-0 flex items-center justify-center gap-1.5 px-3 py-3
                          border font-semibold rounded-xl transition-all text-sm cursor-pointer
                          ${translate
                            ? "bg-indigo-50 dark:bg-indigo-950 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300"
                            : "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400"}`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9l4.5-4.5m0 0l4.5 4.5m-4.5-4.5V21" />
-              </svg>
+              {translateStatus === "opening" ? (
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9l4.5-4.5m0 0l4.5 4.5m-4.5-4.5V21" />
+                </svg>
+              )}
               EN
-            </button>
+              {translateStatus === "opening" && (
+                <div
+                  className="absolute bottom-0 left-0 h-0.5 bg-indigo-500 dark:bg-indigo-400 transition-all duration-100 ease-linear"
+                  style={{ width: `${translateProgress}%` }}
+                />
+              )}
+            </a>
             {user && (
               <button
                 onClick={markAsApplied}
@@ -329,10 +369,12 @@ export default function JobModal({ job, onClose }: Props) {
               </button>
             )}
           </div>
-          <p className="text-xs text-gray-400 dark:text-gray-500 text-center truncate px-2">
-            {applyUrl}
-            {translate && <span className="ml-1 text-indigo-500 dark:text-indigo-400">(opened translated to English in a new tab)</span>}
-          </p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-center truncate px-2">{applyUrl}</p>
+          {translateLog && (
+            <p className="text-xs text-indigo-600 dark:text-indigo-400 text-center px-2 leading-snug">
+              {translateLog}
+            </p>
+          )}
         </div>
       </div>
     </div>
