@@ -300,14 +300,15 @@ export default function JobModal({ job, onClose }: Props) {
             </button>
             <button
               onClick={() => {
-                setTranslate(true);
                 window.open(translatedApplyUrl, "_blank", "noopener,noreferrer");
+                setTranslate(true);
               }}
               title="Open the posting translated to English in a new tab"
-              className="shrink-0 flex items-center justify-center gap-1.5 px-3 py-3
-                         border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 font-semibold rounded-xl
-                         hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400
-                         transition-all text-sm cursor-pointer"
+              className={`shrink-0 flex items-center justify-center gap-1.5 px-3 py-3
+                         border font-semibold rounded-xl transition-all text-sm cursor-pointer
+                         ${translate
+                           ? "bg-indigo-50 dark:bg-indigo-950 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300"
+                           : "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400"}`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
