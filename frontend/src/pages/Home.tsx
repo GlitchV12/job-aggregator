@@ -150,7 +150,7 @@ function LocationPicker({
       </div>
 
       {open && (filtered.length > 0 || input.trim()) && (
-        <div className="absolute top-full mt-1 left-0 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-20 py-1 max-h-64 overflow-y-auto">
+        <div className="absolute top-full mt-1 left-0 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-30 py-1 max-h-64 overflow-y-auto">
           {input.trim() && !filtered.some((l) => l.toLowerCase() === input.trim().toLowerCase()) && (
             <button
               onClick={() => apply(input.trim())}
@@ -276,13 +276,13 @@ export default function Home() {
       <Navbar />
 
       {/* Hero */}
-      <div className="relative overflow-hidden bg-gradient-to-b from-indigo-50 via-purple-50/50 to-gray-50
+      <div className="relative bg-gradient-to-b from-indigo-50 via-purple-50/50 to-gray-50
                        dark:from-gray-900 dark:via-indigo-950/20 dark:to-gray-950 py-12 px-4">
         {/* Ambient blobs */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="blob absolute -top-24 -left-16 w-72 h-72 rounded-full bg-indigo-200/50 dark:bg-indigo-600/10 blur-3xl" />
-          <div className="blob blob-delay-1 absolute -top-16 right-[-8%] w-80 h-80 rounded-full bg-pink-200/40 dark:bg-fuchsia-600/10 blur-3xl" />
-          <div className="blob blob-delay-2 absolute bottom-[-30%] left-[35%] w-72 h-72 rounded-full bg-purple-200/40 dark:bg-purple-600/10 blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 overflow-hidden -z-10">
+          <div className="blob absolute -top-24 -left-16 w-96 h-96 rounded-full bg-indigo-300/50 dark:bg-indigo-600/15 blur-3xl" />
+          <div className="blob blob-delay-1 absolute -top-16 right-[-8%] w-[26rem] h-[26rem] rounded-full bg-pink-300/40 dark:bg-fuchsia-600/15 blur-3xl" />
+          <div className="blob blob-delay-2 absolute bottom-[-30%] left-[35%] w-96 h-96 rounded-full bg-purple-300/40 dark:bg-purple-600/15 blur-3xl" />
         </div>
 
         {/* Fade into page background */}
