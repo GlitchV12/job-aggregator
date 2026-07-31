@@ -78,6 +78,7 @@ export default function JobModal({ job, onClose }: Props) {
   const [copied, setCopied] = useState(false);
   const [markedApplied, setMarkedApplied] = useState(false);
   const [markingApplied, setMarkingApplied] = useState(false);
+  const [translate, setTranslate] = useState(false);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -105,6 +106,7 @@ export default function JobModal({ job, onClose }: Props) {
     : "playwright";
 
   const applyUrl = job.apply_url || job.company_url;
+  const translatedApplyUrl = `https://translate.google.com/translate?sl=auto&tl=en&u=${encodeURIComponent(applyUrl)}`;
 
   const copyTemplate = () => {
     if (analysis?.resume_template) {
@@ -285,7 +287,7 @@ export default function JobModal({ job, onClose }: Props) {
         <div className="p-4 border-t border-gray-100 dark:border-gray-800 shrink-0 space-y-2 bg-white dark:bg-gray-900">
           <div className="flex gap-2">
             <button
-              onClick={() => window.open(applyUrl, "_blank", "noopener,noreferrer")}
+              onClick={() => window.open(translate ? translatedApplyUrl : applyUrl, "_blank", "noopener,noreferrer")}
               className="flex-1 flex items-center justify-center gap-2 px-5 py-3
                          bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl
                          transition-all shadow-sm text-sm cursor-pointer"
@@ -295,6 +297,22 @@ export default function JobModal({ job, onClose }: Props) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
+            </button>
+            <button
+              onClick={() => setTranslate(!translate)}
+              title="Translate the page to English when opened"
+              aria-pressed={translate}
+              className={`shrink-0 flex items-center justify-center gap-1.5 px-3 py-3
+                         border font-semibold rounded-xl transition-all text-sm cursor-pointer
+                         ${translate
+                           ? "bg-indigo-50 dark:bg-indigo-950 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300"
+                           : "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400"}`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9l4.5-4.5m0 0l4.5 4.5m-4.5-4.5V21" />
+              </svg>
+              EN
             </button>
             {user && (
               <button
@@ -309,7 +327,10 @@ export default function JobModal({ job, onClose }: Props) {
               </button>
             )}
           </div>
-          <p className="text-xs text-gray-400 dark:text-gray-500 text-center truncate px-2">{applyUrl}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-center truncate px-2">
+            {applyUrl}
+            {translate && <span className="ml-1 text-indigo-500 dark:text-indigo-400">(opens translated to English)</span>}
+          </p>
         </div>
       </div>
     </div>
