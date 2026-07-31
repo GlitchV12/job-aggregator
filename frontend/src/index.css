@@ -58,3 +58,15 @@ body {
   35%, 100% { transform: translateX(220%) skewX(-20deg); }
 }
 .glass-shine { animation: glassShine 4.5s ease-in-out infinite; }
+
+/* Solid orbiting shapes behind the glass search bar, for the backdrop-blur to refract */
+@keyframes orbitDrift {
+  0% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(24px, -18px) scale(1.15); }
+  50% { transform: translate(-14px, 12px) scale(0.88); }
+  75% { transform: translate(18px, 18px) scale(1.05); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+.glass-orbit-1 { animation: orbitDrift 6s ease-in-out infinite; }
+.glass-orbit-2 { animation: orbitDrift 8s ease-in-out infinite reverse; animation-delay: -2s; }
+.glass-orbit-3 { animation: orbitDrift 7s ease-in-out infinite; animation-delay: -4s; }

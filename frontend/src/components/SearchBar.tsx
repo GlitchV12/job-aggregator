@@ -27,9 +27,17 @@ export default function SearchBar({ onSearch, onScrapeUrl, isScrapingUrl }: Prop
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto">
+    <form onSubmit={handleSubmit} className="relative w-full max-w-2xl mx-auto">
+      {/* Solid moving shapes behind the glass bar — proves the backdrop-blur is really refracting content, not just faking translucency */}
+      <div className="pointer-events-none absolute -inset-x-8 -inset-y-12 overflow-visible">
+        <div className="glass-orbit-1 absolute top-1/2 left-[8%] w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-rose-500" />
+        <div className="glass-orbit-2 absolute top-[15%] left-[38%] w-12 h-12 rounded-full bg-gradient-to-br from-amber-300 to-orange-400" />
+        <div className="glass-orbit-3 absolute top-[75%] left-[62%] w-20 h-20 rounded-full bg-gradient-to-br from-teal-300 to-emerald-400" />
+        <div className="glass-orbit-1 absolute top-[25%] left-[88%] w-14 h-14 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500" style={{ animationDelay: "-3s" }} />
+      </div>
+
       <div
-        className="relative flex items-center overflow-hidden rounded-2xl
+        className="relative z-10 flex items-center overflow-hidden rounded-2xl
                    bg-white/40 dark:bg-white/[0.07] backdrop-blur-xl backdrop-saturate-150
                    border border-white/60 dark:border-white/10
                    shadow-[0_8px_32px_-8px_rgba(79,70,229,0.3)]
