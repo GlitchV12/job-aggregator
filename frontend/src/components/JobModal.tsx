@@ -82,6 +82,7 @@ export default function JobModal({ job, onClose }: Props) {
   const [showOriginal, setShowOriginal] = useState(false);
   const [translateProgress, setTranslateProgress] = useState(0);
   const [translateLog, setTranslateLog] = useState<string | null>(null);
+  const [guestApplyOpen, setGuestApplyOpen] = useState(false);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -374,26 +375,45 @@ export default function JobModal({ job, onClose }: Props) {
           </div>
 
           {/* Resume Upload */}
-          <ResumeUpload jobId={job.id} />
+          <ResumeUpload
+            jobId={job.id}
+            hasSavedResume={!!(user?.resume_filename)}
+            savedResumeFilename={user?.resume_filename ?? undefined}
+          />
         </div>
 
         {/* Sticky footer */}
         <div className="p-4 border-t border-gray-100 dark:border-gray-800 shrink-0 space-y-2 bg-white dark:bg-gray-900">
           <div className="flex gap-2">
-            <a
-              href={applyUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-2 px-5 py-3
-                         bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl
-                         transition-all shadow-sm text-sm cursor-pointer no-underline"
-            >
-              Apply on Company Site
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </a>
+            {user ? (
+              <a
+                href={applyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 px-5 py-3
+                           bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl
+                           transition-all shadow-sm text-sm cursor-pointer no-underline"
+              >
+                Apply on Company Site
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            ) : (
+              <button
+                onClick={() => setGuestApplyOpen(true)}
+                className="flex-1 flex items-center justify-center gap-2 px-5 py-3
+                           bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl
+                           transition-all shadow-sm text-sm cursor-pointer"
+              >
+                Apply on Company Site
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </button>
+            )}
             {user && (
               <button
                 onClick={markAsApplied}
@@ -410,6 +430,66 @@ export default function JobModal({ job, onClose }: Props) {
           <p className="text-xs text-gray-400 dark:text-gray-500 text-center truncate px-2">{applyUrl}</p>
         </div>
       </div>
+
+      {/* Guest apply popup */}
+      {guestApplyOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setGuestApplyOpen(false)}
+          />
+          <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm p-6
+                          border border-gray-100 dark:border-gray-800 animate-[fadeIn_0.2s_ease]">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Application won't be tracked</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                  You're not signed in. Your application progress won't be saved or tracked.
+                  Sign in to keep track of every job you apply to.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <a
+                href={applyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setGuestApplyOpen(false)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5
+                           bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl
+                           transition-all no-underline text-center"
+              >
+                Continue to company site
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+              <a
+                href="/login"
+                className="w-full flex items-center justify-center px-4 py-2.5
+                           border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200
+                           text-sm font-semibold rounded-xl hover:border-indigo-300 hover:text-indigo-600
+                           dark:hover:text-indigo-400 transition-all no-underline text-center"
+              >
+                Log in to track applications
+              </a>
+              <button
+                onClick={() => setGuestApplyOpen(false)}
+                className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 AI service using Google Gemini (free tier) for ATS keyword extraction,
 resume template generation, and resume-vs-JD match scoring.
 """
+import asyncio
 import json
 import os
 import re
@@ -19,6 +20,10 @@ SYSTEM_PROMPT = (
     "Always respond with valid JSON when asked to return structured data."
 )
 
+# Retry config — max 3 retries, exponential backoff
+_MAX_RETRIES = 3
+_RETRY_DELAYS = [2, 4, 8]  # seconds
+
 
 def get_client() -> genai.Client:
     global _client
@@ -32,6 +37,35 @@ def _clean_json(text: str) -> str:
     text = re.sub(r"^```(?:json)?\n?", "", text)
     text = re.sub(r"\n?```$", "", text)
     return text
+
+
+def _is_retryable(exc: Exception) -> bool:
+    """True if the error is a transient 503/429 that warrants a retry."""
+    msg = str(exc).upper()
+    return "503" in msg or "UNAVAILABLE" in msg or "429" in msg or "RESOURCE_EXHAUSTED" in msg
+
+
+async def _call_with_retry(coro_fn):
+    """
+    Execute an async zero-arg coroutine function with exponential backoff.
+    Total attempts = _MAX_RETRIES + 1.  Only retries on 503/429 errors.
+    """
+    last_exc: Exception = RuntimeError("No attempts made")
+    for attempt in range(_MAX_RETRIES + 1):
+        try:
+            return await coro_fn()
+        except Exception as exc:
+            if _is_retryable(exc) and attempt < _MAX_RETRIES:
+                delay = _RETRY_DELAYS[attempt]
+                print(
+                    f"[AI] Attempt {attempt + 1}/{_MAX_RETRIES + 1} failed "
+                    f"({type(exc).__name__}). Retrying in {delay}s..."
+                )
+                last_exc = exc
+                await asyncio.sleep(delay)
+            else:
+                raise exc
+    raise last_exc
 
 
 async def analyze_jd(job_title: str, job_description: str) -> dict:
@@ -55,16 +89,19 @@ Job Description:
 
 Respond ONLY with the JSON object, no other text."""
 
-    resp = await get_client().aio.models.generate_content(
-        model=MODEL_NAME,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-            temperature=0.3,
-            response_mime_type="application/json",
-        ),
-    )
-    return json.loads(_clean_json(resp.text))
+    async def _do():
+        resp = await get_client().aio.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                temperature=0.3,
+                response_mime_type="application/json",
+            ),
+        )
+        return json.loads(_clean_json(resp.text))
+
+    return await _call_with_retry(_do)
 
 
 async def translate_to_english(text: str) -> str:
@@ -76,12 +113,15 @@ Respond with only the translated content, no commentary, no markdown code fences
 Content:
 {text[:12000]}"""
 
-    resp = await get_client().aio.models.generate_content(
-        model=MODEL_NAME,
-        contents=prompt,
-        config=types.GenerateContentConfig(temperature=0.2),
-    )
-    return _clean_json(resp.text)
+    async def _do():
+        resp = await get_client().aio.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=types.GenerateContentConfig(temperature=0.2),
+        )
+        return _clean_json(resp.text)
+
+    return await _call_with_retry(_do)
 
 
 async def score_resume(job_title: str, job_description: str, resume_text: str) -> dict:
@@ -110,13 +150,16 @@ Resume:
 
 Respond ONLY with the JSON object, no other text."""
 
-    resp = await get_client().aio.models.generate_content(
-        model=MODEL_NAME,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-            temperature=0.3,
-            response_mime_type="application/json",
-        ),
-    )
-    return json.loads(_clean_json(resp.text))
+    async def _do():
+        resp = await get_client().aio.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                temperature=0.3,
+                response_mime_type="application/json",
+            ),
+        )
+        return json.loads(_clean_json(resp.text))
+
+    return await _call_with_retry(_do)

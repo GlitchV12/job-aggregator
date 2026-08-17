@@ -1,9 +1,13 @@
 import { useState, useRef } from "react";
-import { scoreResume, ResumeScore } from "../api/client";
+import { scoreResume, scoreResumeFromProfile, ResumeScore } from "../api/client";
 
 interface Props {
   jobId: string;
+  hasSavedResume?: boolean;
+  savedResumeFilename?: string;
 }
+
+type Mode = "choose" | "upload" | "saved";
 
 function ScoreRing({ score }: { score: number }) {
   const radius = 45;
@@ -39,19 +43,22 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
-export default function ResumeUpload({ jobId }: Props) {
+export default function ResumeUpload({ jobId, hasSavedResume, savedResumeFilename }: Props) {
+  const [mode, setMode] = useState<Mode>(hasSavedResume ? "choose" : "upload");
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ResumeScore | null>(null);
   const [error, setError] = useState("");
+  const [usedSaved, setUsedSaved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = async (file: File) => {
+  const runScore = async (fn: () => Promise<ResumeScore>, saved: boolean) => {
     setLoading(true);
     setError("");
     setResult(null);
+    setUsedSaved(saved);
     try {
-      const data = await scoreResume(jobId, file);
+      const data = await fn();
       setResult(data);
     } catch (e: unknown) {
       const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
@@ -61,11 +68,23 @@ export default function ResumeUpload({ jobId }: Props) {
     }
   };
 
+  const handleFile = (file: File) =>
+    runScore(() => scoreResume(jobId, file), false);
+
+  const handleSavedResume = () =>
+    runScore(() => scoreResumeFromProfile(jobId), true);
+
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
     const file = e.dataTransfer.files[0];
     if (file) handleFile(file);
+  };
+
+  const reset = () => {
+    setResult(null);
+    setError("");
+    setMode(hasSavedResume ? "choose" : "upload");
   };
 
   return (
@@ -79,39 +98,123 @@ export default function ResumeUpload({ jobId }: Props) {
       </h4>
 
       {!result && (
-        <div
-          onClick={() => inputRef.current?.click()}
-          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={onDrop}
-          className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all
-            ${dragging ? "border-indigo-400 bg-indigo-50 dark:bg-indigo-950" : "border-gray-200 dark:border-gray-700 hover:border-indigo-300 hover:bg-gray-50 dark:hover:bg-gray-800"}`}
-        >
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".pdf,.docx,.txt"
-            className="hidden"
-            onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-          />
-          {loading ? (
-            <div className="flex flex-col items-center gap-2">
-              <svg className="w-8 h-8 text-indigo-500 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Analyzing your resume with AI...</p>
+        <>
+          {/* Mode chooser — shown when user has a saved resume and hasn't picked yet */}
+          {mode === "choose" && (
+            <div className="grid grid-cols-2 gap-3">
+              {/* Use saved resume */}
+              <button
+                onClick={handleSavedResume}
+                disabled={loading}
+                className="flex flex-col items-center gap-2 p-4 border-2 border-indigo-200 dark:border-indigo-800
+                           bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-950
+                           rounded-xl cursor-pointer transition-all group disabled:opacity-50"
+              >
+                <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white
+                                group-hover:scale-110 transition-transform">
+                  {loading && usedSaved ? (
+                    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  )}
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">Use saved resume</p>
+                  <p className="text-xs text-indigo-500 dark:text-indigo-400 truncate max-w-[100px] mt-0.5">
+                    {savedResumeFilename ?? "From profile"}
+                  </p>
+                </div>
+              </button>
+
+              {/* Upload from device */}
+              <button
+                onClick={() => setMode("upload")}
+                className="flex flex-col items-center gap-2 p-4 border-2 border-dashed border-gray-200 dark:border-gray-700
+                           hover:border-indigo-300 hover:bg-gray-50 dark:hover:bg-gray-800
+                           rounded-xl cursor-pointer transition-all group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center
+                                text-gray-500 dark:text-gray-400 group-hover:scale-110 transition-transform">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Upload from device</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">PDF, DOCX, TXT</p>
+                </div>
+              </button>
             </div>
-          ) : (
+          )}
+
+          {/* File upload dropzone */}
+          {mode === "upload" && (
             <>
-              <svg className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Drop your resume or click to upload</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">PDF, DOCX, or TXT</p>
+              {hasSavedResume && (
+                <button
+                  onClick={() => setMode("choose")}
+                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline mb-2 flex items-center gap-1"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Back to options
+                </button>
+              )}
+              <div
+                onClick={() => inputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={onDrop}
+                className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all
+                  ${dragging ? "border-indigo-400 bg-indigo-50 dark:bg-indigo-950" : "border-gray-200 dark:border-gray-700 hover:border-indigo-300 hover:bg-gray-50 dark:hover:bg-gray-800"}`}
+              >
+                <input
+                  ref={inputRef}
+                  type="file"
+                  accept=".pdf,.docx,.txt"
+                  className="hidden"
+                  onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+                />
+                {loading ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <svg className="w-8 h-8 text-indigo-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Analyzing your resume with AI...</p>
+                  </div>
+                ) : (
+                  <>
+                    <svg className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Drop your resume or click to upload</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">PDF, DOCX, or TXT</p>
+                  </>
+                )}
+              </div>
             </>
           )}
+        </>
+      )}
+
+      {/* Loading state when using saved resume from choose mode */}
+      {!result && loading && usedSaved && mode === "choose" && (
+        <div className="flex flex-col items-center gap-2 py-4">
+          <svg className="w-8 h-8 text-indigo-500 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Analyzing your saved resume with AI...</p>
         </div>
       )}
 
@@ -119,6 +222,15 @@ export default function ResumeUpload({ jobId }: Props) {
 
       {result && (
         <div className="space-y-4">
+          {usedSaved && (
+            <p className="text-xs text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              Scored using your saved resume
+            </p>
+          )}
           <div className="flex items-start gap-6">
             <ScoreRing score={result.score} />
             <div className="flex-1 space-y-3">
@@ -164,10 +276,10 @@ export default function ResumeUpload({ jobId }: Props) {
           )}
 
           <button
-            onClick={() => setResult(null)}
+            onClick={reset}
             className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
           >
-            Upload a different resume
+            Try with a different resume
           </button>
         </div>
       )}

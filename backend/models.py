@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Optional
 from sqlmodel import SQLModel, Field
+import random
+import string
 
 
 class Company(SQLModel, table=True):
@@ -27,6 +29,18 @@ class Job(SQLModel, table=True):
     apply_url: str
     scraped_at: datetime = Field(default_factory=datetime.utcnow)
     is_active: bool = True
+
+
+class OTPRecord(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    email: str = Field(index=True)
+    otp_code: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    is_used: bool = Field(default=False)
+
+    @staticmethod
+    def generate_code() -> str:
+        return "".join(random.choices(string.digits, k=6))
 
 
 class JDAnalysis(SQLModel, table=True):
@@ -112,6 +126,19 @@ class TranslateRequest(SQLModel):
 
 class TranslateResponse(SQLModel):
     translated: str
+
+
+class OTPRequest(SQLModel):
+    email: str
+    password: str
+    name: Optional[str] = None
+
+
+class OTPVerifyRequest(SQLModel):
+    email: str
+    otp: str
+    password: str
+    name: Optional[str] = None
 
 
 class SignupRequest(SQLModel):

@@ -158,6 +158,16 @@ export interface Application {
   applied_at: string;
 }
 
+export const sendOtp = async (email: string, password: string, name?: string) => {
+  const { data } = await api.post<{ message: string }>("/auth/send-otp", { email, password, name });
+  return data;
+};
+
+export const verifyOtp = async (email: string, otp: string, password: string, name?: string) => {
+  const { data } = await api.post<AuthResponse>("/auth/verify-otp", { email, otp, password, name });
+  return data;
+};
+
 export const signup = async (email: string, password: string, name?: string) => {
   const { data } = await api.post<AuthResponse>("/auth/signup", { email, password, name });
   return data;
@@ -210,4 +220,13 @@ export const updateApplication = async (id: number, fields: { status?: string; n
 
 export const deleteApplication = async (id: number) => {
   await api.delete(`/applications/${id}`);
+};
+
+export const scoreResumeFromProfile = async (jobId: string) => {
+  const form = new FormData();
+  form.append("job_id", jobId);
+  const { data } = await api.post<ResumeScore>("/analyze/resume-saved", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
 };

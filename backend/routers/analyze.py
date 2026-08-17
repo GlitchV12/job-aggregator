@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlmodel import Session
 from models import Job, JDAnalysis, AnalyzeJDRequest, JDAnalysisResponse, KeywordItem, ResumeScoreResponse, TranslateRequest, TranslateResponse
 from db import get_session
+from auth import get_current_user
+from models import User
 from services.claude_service import analyze_jd, score_resume, translate_to_english
 
 router = APIRouter(prefix="/api/analyze", tags=["analyze"])
@@ -109,3 +111,41 @@ async def translate_text(request: TranslateRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
     return TranslateResponse(translated=translated)
+
+
+@router.post("/resume-saved", response_model=ResumeScoreResponse)
+async def score_saved_resume(
+    job_id: str = Form(...),
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """Score the user's stored profile resume against a job — no upload needed."""
+    if not current_user.resume_content or not current_user.resume_filename:
+        raise HTTPException(status_code=404, detail="No resume saved on your profile. Please upload one first.")
+
+    job = session.get(Job, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    filename = current_user.resume_filename.lower()
+    try:
+        if filename.endswith(".pdf"):
+            resume_text = _extract_pdf_text(current_user.resume_content)
+        elif filename.endswith(".docx"):
+            resume_text = _extract_docx_text(current_user.resume_content)
+        else:
+            resume_text = current_user.resume_content.decode("utf-8", errors="ignore")
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Could not read your saved resume: {str(e)}")
+
+    try:
+        result = await score_resume(job.title, job.description, resume_text)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI scoring failed: {str(e)}")
+
+    return ResumeScoreResponse(
+        score=result.get("score", 0),
+        matched_keywords=result.get("matched_keywords", []),
+        missing_keywords=result.get("missing_keywords", []),
+        suggestions=result.get("suggestions", []),
+    )
