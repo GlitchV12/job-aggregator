@@ -1,14 +1,20 @@
 import json
 import io
+from datetime import datetime, date
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from sqlmodel import Session
-from models import Job, JDAnalysis, AnalyzeJDRequest, JDAnalysisResponse, KeywordItem, ResumeScoreResponse, TranslateRequest, TranslateResponse
+from sqlmodel import Session, select, func
+from models import (
+    Job, JDAnalysis, AnalyzeJDRequest, JDAnalysisResponse, KeywordItem,
+    ResumeScoreResponse, TranslateRequest, TranslateResponse,
+    AIUsageLog, Subscription, User,
+)
 from db import get_session
 from auth import get_current_user
-from models import User
 from services.claude_service import analyze_jd, score_resume, translate_to_english
 
 router = APIRouter(prefix="/api/analyze", tags=["analyze"])
+
+FREE_DAILY_LIMIT = 5
 
 
 def _extract_pdf_text(data: bytes) -> str:
@@ -25,12 +31,48 @@ def _extract_docx_text(data: bytes) -> str:
     return "\n".join(p.text for p in doc.paragraphs)
 
 
+def _check_and_log_ai_usage(user: User, session: Session) -> None:
+    """
+    Raise HTTP 429 if free user has hit today's limit.
+    On success, record a new usage log entry.
+    """
+    # Get subscription
+    sub = session.exec(select(Subscription).where(Subscription.user_id == user.id)).first()
+    is_pro = (
+        sub is not None
+        and sub.plan == "pro"
+        and sub.valid_until is not None
+        and sub.valid_until > datetime.utcnow()
+    )
+
+    if not is_pro:
+        # Count today's usages
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        uses_today = session.exec(
+            select(func.count()).where(
+                AIUsageLog.user_id == user.id,
+                AIUsageLog.used_at >= today_start,
+            )
+        ).one()
+
+        if uses_today >= FREE_DAILY_LIMIT:
+            raise HTTPException(
+                status_code=429,
+                detail="daily_limit_reached",
+            )
+
+    # Log this usage
+    session.add(AIUsageLog(user_id=user.id))
+    session.commit()
+
+
 @router.post("/jd", response_model=JDAnalysisResponse)
 async def analyze_job_description(
     request: AnalyzeJDRequest,
     session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ):
-    # Return cached analysis if available
+    # Return cached analysis if available (doesn't count against limit)
     cached = session.get(JDAnalysis, request.job_id)
     if cached:
         return JDAnalysisResponse(
@@ -42,6 +84,8 @@ async def analyze_job_description(
     job = session.get(Job, request.job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+
+    _check_and_log_ai_usage(current_user, session)
 
     try:
         result = await analyze_jd(job.title, job.description)
@@ -71,6 +115,7 @@ async def score_resume_against_jd(
     job_id: str = Form(...),
     file: UploadFile = File(...),
     session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ):
     job = session.get(Job, job_id)
     if not job:
@@ -88,6 +133,8 @@ async def score_resume_against_jd(
             resume_text = content.decode("utf-8", errors="ignore")
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Could not parse resume: {str(e)}")
+
+    _check_and_log_ai_usage(current_user, session)
 
     try:
         result = await score_resume(job.title, job.description, resume_text)
@@ -137,6 +184,8 @@ async def score_saved_resume(
             resume_text = current_user.resume_content.decode("utf-8", errors="ignore")
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Could not read your saved resume: {str(e)}")
+
+    _check_and_log_ai_usage(current_user, session)
 
     try:
         result = await score_resume(job.title, job.description, resume_text)

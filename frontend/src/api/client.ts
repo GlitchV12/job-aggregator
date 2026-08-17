@@ -35,6 +35,7 @@ export interface Job {
   department?: string;
   short_description: string;
   apply_url: string;
+  work_mode?: string | null;  // 'remote' | 'hybrid' | 'onsite' | null
   scraped_at: string;
 }
 
@@ -74,6 +75,7 @@ export const fetchJobs = async (params: {
   company?: string;
   location?: string;
   date_from?: string;
+  work_mode?: string;
   skip?: number;
   limit?: number;
 }) => {
@@ -86,6 +88,7 @@ export const fetchJobsCount = async (params: {
   company?: string;
   location?: string;
   date_from?: string;
+  work_mode?: string;
 }) => {
   const { data } = await api.get<{ total: number }>("/jobs/count", { params });
   return data.total;
@@ -228,5 +231,36 @@ export const scoreResumeFromProfile = async (jobId: string) => {
   const { data } = await api.post<ResumeScore>("/analyze/resume-saved", form, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+  return data;
+};
+
+// ── Subscription & Payments ────────────────────────────────────────────────────
+
+export interface SubscriptionStatus {
+  plan: string;         // 'free' | 'pro'
+  uses_today: number;
+  daily_limit: number;  // 5 for free, -1 for unlimited
+  valid_until?: string | null;
+}
+
+export const getSubscription = async (): Promise<SubscriptionStatus> => {
+  const { data } = await api.get<SubscriptionStatus>("/payments/subscription");
+  return data;
+};
+
+export const createPaymentOrder = async (plan: string) => {
+  const { data } = await api.post<{ order_id: string; amount: number; currency: string; key_id: string }>(
+    `/payments/create-order?plan=${plan}`
+  );
+  return data;
+};
+
+export const verifyPayment = async (payload: {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+  plan: string;
+}) => {
+  const { data } = await api.post("/payments/verify", payload);
   return data;
 };

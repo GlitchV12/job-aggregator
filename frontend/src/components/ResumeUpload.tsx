@@ -5,6 +5,7 @@ interface Props {
   jobId: string;
   hasSavedResume?: boolean;
   savedResumeFilename?: string;
+  aiLimitReached?: boolean;
 }
 
 type Mode = "choose" | "upload" | "saved";
@@ -43,7 +44,7 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
-export default function ResumeUpload({ jobId, hasSavedResume, savedResumeFilename }: Props) {
+export default function ResumeUpload({ jobId, hasSavedResume, savedResumeFilename, aiLimitReached }: Props) {
   const [mode, setMode] = useState<Mode>(hasSavedResume ? "choose" : "upload");
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -97,7 +98,22 @@ export default function ResumeUpload({ jobId, hasSavedResume, savedResumeFilenam
         Resume Match Score
       </h4>
 
-      {!result && (
+      {aiLimitReached ? (
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl p-5 text-center">
+          <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900 rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg className="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h4 className="font-semibold text-amber-900 dark:text-amber-300 text-sm mb-1">Daily Limit Reached</h4>
+          <p className="text-xs text-amber-700 dark:text-amber-400 mb-4 max-w-[250px] mx-auto">
+            You've used all 5 of your free AI matches for today. Upgrade to Pro for unlimited resume scoring.
+          </p>
+          <a href="/pricing" className="inline-block px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-all no-underline">
+            Upgrade to Pro
+          </a>
+        </div>
+      ) : !result && (
         <>
           {/* Mode chooser — shown when user has a saved resume and hasn't picked yet */}
           {mode === "choose" && (

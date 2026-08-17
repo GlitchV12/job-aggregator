@@ -78,9 +78,20 @@ export default function JobCard({ job }: Props) {
                 )}
               </div>
             </div>
-            <span className={`shrink-0 px-2 py-0.5 text-xs rounded-full font-medium ${PLATFORM_COLORS[platform]}`}>
-              {platform}
-            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              {job.work_mode && (
+                <span className={`px-2 py-0.5 text-xs rounded-full font-medium flex items-center gap-1
+                  ${job.work_mode === 'remote' ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300' :
+                    job.work_mode === 'hybrid' ? 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300' :
+                    'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'}`}>
+                  {job.work_mode === 'remote' ? '🌍' : job.work_mode === 'hybrid' ? '🏢' : '🏙'}
+                  <span className="capitalize">{job.work_mode}</span>
+                </span>
+              )}
+              <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${PLATFORM_COLORS[platform]}`}>
+                {platform}
+              </span>
+            </div>
           </div>
 
           {/* Short description */}

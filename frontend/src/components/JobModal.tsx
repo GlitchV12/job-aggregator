@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Job, fetchJob, analyzeJD, createApplication, translateText } from "../api/client";
+import { Job, fetchJob, analyzeJD, createApplication, translateText, getSubscription } from "../api/client";
 import ATSKeywords from "./ATSKeywords";
 import ResumeUpload from "./ResumeUpload";
 import { useAuth } from "../context/AuthContext";
@@ -100,9 +100,17 @@ export default function JobModal({ job, onClose }: Props) {
     queryFn: () => fetchJob(job.id),
   });
 
-  const { data: analysis, isPending: loadingAnalysis, mutate: runAnalysis } = useMutation({
+  const { data: analysis, isPending: loadingAnalysis, mutate: runAnalysis, error: analysisError } = useMutation({
     mutationFn: () => analyzeJD(job.id),
   });
+
+  const { data: sub } = useQuery({
+    queryKey: ["subscription"],
+    queryFn: getSubscription,
+    enabled: !!user,
+  });
+
+  const aiLimitReached = sub?.plan === "free" && sub.uses_today >= sub.daily_limit;
 
   const rawDescription = detail?.description || job.short_description;
 
@@ -222,7 +230,16 @@ export default function JobModal({ job, onClose }: Props) {
                 </>
               )}
             </div>
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <div className="flex items-center gap-2 mt-2 flex-wrap shrink-0">
+              {job.work_mode && (
+                <span className={`px-2 py-0.5 text-xs rounded-full font-medium flex items-center gap-1
+                  ${job.work_mode === 'remote' ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300' :
+                    job.work_mode === 'hybrid' ? 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300' :
+                    'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'}`}>
+                  {job.work_mode === 'remote' ? '🌍' : job.work_mode === 'hybrid' ? '🏢' : '🏙'}
+                  <span className="capitalize">{job.work_mode}</span>
+                </span>
+              )}
               <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${PLATFORM_COLORS[platform]}`}>
                 {platform}
               </span>
@@ -309,10 +326,20 @@ export default function JobModal({ job, onClose }: Props) {
                     d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.347.745A4 4 0 0112 20.5a4 4 0 01-3.79-2.745l-.347-.745z" />
                 </svg>
                 AI-Powered Insights
+                {sub && sub.plan === "free" && (
+                  <span className="text-xs font-normal px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-full">
+                    {sub.daily_limit - sub.uses_today} uses left today
+                  </span>
+                )}
               </h4>
               {!analysis && (
-                <button
-                  onClick={() => { if (!analysis) runAnalysis(); }}
+                aiLimitReached ? (
+                  <a href="/pricing" className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium rounded-lg transition-all no-underline">
+                    Upgrade to Pro
+                  </a>
+                ) : (
+                  <button
+                    onClick={() => { if (!analysis) runAnalysis(); }}
                   disabled={loadingAnalysis}
                   className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400
                              text-white text-xs font-medium rounded-lg flex items-center gap-1.5 transition-all"
@@ -334,6 +361,7 @@ export default function JobModal({ job, onClose }: Props) {
                     </>
                   )}
                 </button>
+                )
               )}
             </div>
 
@@ -372,6 +400,14 @@ export default function JobModal({ job, onClose }: Props) {
                 </div>
               </div>
             )}
+            
+            {analysisError && (
+              <p className="text-xs text-red-500 dark:text-red-400 mt-2">
+                {(analysisError as any)?.response?.data?.detail === "daily_limit_reached" 
+                  ? "You have reached your daily AI limit. Please upgrade to Pro for unlimited access."
+                  : "Failed to analyze job description."}
+              </p>
+            )}
           </div>
 
           {/* Resume Upload */}
@@ -379,6 +415,7 @@ export default function JobModal({ job, onClose }: Props) {
             jobId={job.id}
             hasSavedResume={!!(user?.resume_filename)}
             savedResumeFilename={user?.resume_filename ?? undefined}
+            aiLimitReached={aiLimitReached}
           />
         </div>
 

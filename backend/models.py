@@ -1,8 +1,30 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 from sqlmodel import SQLModel, Field
 import random
+import re
 import string
+
+
+# ── Shared utility ────────────────────────────────────────────────────────────
+
+_REMOTE_RE  = re.compile(r"\b(remote|fully[- ]remote|work[- ]from[- ]home|wfh|distributed|anywhere)\b", re.I)
+_HYBRID_RE  = re.compile(r"\b(hybrid|flex|part[- ]remote|partially[- ]remote|mixed)\b", re.I)
+_ONSITE_RE  = re.compile(r"\b(on[- ]?site|in[- ]office|in[- ]person|office[- ]based|in[- ]location)\b", re.I)
+
+
+def detect_work_mode(title: str, description: str) -> Optional[str]:
+    """Return 'remote', 'hybrid', 'onsite', or None."""
+    text = (title + " " + description[:3000]).lower()
+    if _REMOTE_RE.search(text):
+        if _HYBRID_RE.search(text):
+            return "hybrid"
+        return "remote"
+    if _HYBRID_RE.search(text):
+        return "hybrid"
+    if _ONSITE_RE.search(text):
+        return "onsite"
+    return None
 
 
 class Company(SQLModel, table=True):
@@ -27,6 +49,7 @@ class Job(SQLModel, table=True):
     description: str
     short_description: str
     apply_url: str
+    work_mode: Optional[str] = Field(default=None, index=True)  # remote | hybrid | onsite | None
     scraped_at: datetime = Field(default_factory=datetime.utcnow)
     is_active: bool = True
 
@@ -74,6 +97,21 @@ class UserJobApplication(SQLModel, table=True):
     applied_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class AIUsageLog(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(index=True, foreign_key="user.id")
+    used_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Subscription(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(index=True, unique=True, foreign_key="user.id")
+    plan: str = Field(default="free")  # free | pro
+    valid_until: Optional[datetime] = None
+    razorpay_payment_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 # Pydantic response models (not DB tables)
 class JobResponse(SQLModel):
     id: str
@@ -86,6 +124,7 @@ class JobResponse(SQLModel):
     department: Optional[str]
     short_description: str
     apply_url: str
+    work_mode: Optional[str]
     scraped_at: datetime
 
 
@@ -196,3 +235,24 @@ class ApplicationResponse(SQLModel):
     status: str
     notes: Optional[str]
     applied_at: datetime
+
+
+class SubscriptionStatusResponse(SQLModel):
+    plan: str           # free | pro
+    uses_today: int
+    daily_limit: int    # 5 for free, -1 (unlimited) for pro
+    valid_until: Optional[datetime]
+
+
+class CreateOrderResponse(SQLModel):
+    order_id: str
+    amount: int         # in paise
+    currency: str
+    key_id: str
+
+
+class VerifyPaymentRequest(SQLModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+    plan: str           # monthly | annual

@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select, or_, func
 from sqlalchemy import text
-from models import Job, JobResponse, JobDetailResponse
+from models import Job, JobResponse, JobDetailResponse, detect_work_mode
 from db import get_session, is_postgres
 from search_synonyms import expand_terms
 
@@ -17,16 +17,11 @@ def _apply_search(query, search: str):
         return query
 
     if is_postgres():
-        # websearch_to_tsquery with OR'd synonym terms; ranking is applied
-        # separately (see _rank_order_clause) so this stays safe to wrap in
-        # a count(*) subquery too.
         tsquery = " OR ".join(f"({t})" for t in terms)
         return query.where(
             text("job.search_vector @@ websearch_to_tsquery('english', :tsquery)").bindparams(tsquery=tsquery)
         )
 
-    # SQLite fallback: OR the original query plus its synonym expansions
-    # across title/company/full description.
     clauses = []
     for term in terms:
         clauses.extend([
@@ -38,14 +33,13 @@ def _apply_search(query, search: str):
 
 
 def _rank_order_clause(search: str):
-    """Relevance ordering for a search term (Postgres only, else None)."""
     if not search or not is_postgres():
         return None
     tsquery = " OR ".join(f"({t})" for t in expand_terms(search))
     return text("ts_rank(job.search_vector, websearch_to_tsquery('english', :tsquery)) DESC").bindparams(tsquery=tsquery)
 
 
-def _build_base_query(search: str, company: str, location: str, date_from: Optional[str]):
+def _build_base_query(search: str, company: str, location: str, date_from: Optional[str], work_mode: str):
     query = select(Job).where(Job.is_active == True)
     if search:
         query = _apply_search(query, search)
@@ -59,6 +53,20 @@ def _build_base_query(search: str, company: str, location: str, date_from: Optio
             query = query.where(Job.scraped_at >= dt)
         except (ValueError, TypeError):
             pass
+    if work_mode:
+        # Filter by stored work_mode, but also do a text-based fallback for legacy rows
+        if work_mode == "remote":
+            query = query.where(
+                (Job.work_mode == "remote") |
+                (Job.work_mode == None) & Job.description.ilike("%remote%")
+            )
+        elif work_mode == "hybrid":
+            query = query.where(
+                (Job.work_mode == "hybrid") |
+                (Job.work_mode == None) & Job.description.ilike("%hybrid%")
+            )
+        elif work_mode == "onsite":
+            query = query.where(Job.work_mode == "onsite")
     return query
 
 
@@ -68,9 +76,10 @@ def count_jobs(
     company: str = Query(default=""),
     location: str = Query(default=""),
     date_from: Optional[str] = Query(default=None),
+    work_mode: str = Query(default=""),
     session: Session = Depends(get_session),
 ):
-    base = _build_base_query(search, company, location, date_from)
+    base = _build_base_query(search, company, location, date_from, work_mode)
     count_query = select(func.count()).select_from(base.subquery())
     total = session.exec(count_query).one()
     return {"total": total}
@@ -95,18 +104,25 @@ def list_jobs(
     company: str = Query(default=""),
     location: str = Query(default=""),
     date_from: Optional[str] = Query(default=None),
+    work_mode: str = Query(default=""),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=20, le=100),
     session: Session = Depends(get_session),
 ):
-    query = _build_base_query(search, company, location, date_from)
+    query = _build_base_query(search, company, location, date_from, work_mode)
     rank_clause = _rank_order_clause(search)
     if rank_clause is not None:
         query = query.order_by(rank_clause, Job.scraped_at.desc())
     else:
         query = query.order_by(Job.scraped_at.desc())
     query = query.offset(skip).limit(limit)
-    return session.exec(query).all()
+
+    jobs = session.exec(query).all()
+    # Back-fill work_mode for legacy rows that don't have it yet
+    for job in jobs:
+        if job.work_mode is None:
+            job.work_mode = detect_work_mode(job.title, job.description)
+    return jobs
 
 
 @router.get("/{job_id}", response_model=JobDetailResponse)
@@ -114,4 +130,6 @@ def get_job(job_id: str, session: Session = Depends(get_session)):
     job = session.get(Job, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+    if job.work_mode is None:
+        job.work_mode = detect_work_mode(job.title, job.description)
     return job

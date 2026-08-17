@@ -36,6 +36,9 @@ export default function Navbar() {
           <Link to="/jobs" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
             Browse jobs
           </Link>
+          <Link to="/pricing" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+            Pricing
+          </Link>
 
           <button
             onClick={toggleDark}

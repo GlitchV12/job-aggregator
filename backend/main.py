@@ -13,7 +13,7 @@ load_dotenv()
 
 from db import create_db_and_tables, run_search_index_setup, engine
 from models import Company, Job
-from routers import jobs, companies, scrape, analyze, auth, profile, applications
+from routers import jobs, companies, scrape, analyze, auth, profile, applications, payments
 from services.scrape_service import scrape_company
 
 scheduler = AsyncIOScheduler()
@@ -105,6 +105,7 @@ app.include_router(analyze.router)
 app.include_router(auth.router)
 app.include_router(profile.router)
 app.include_router(applications.router)
+app.include_router(payments.router)
 
 
 @app.get("/api/health")

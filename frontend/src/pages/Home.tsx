@@ -187,20 +187,21 @@ export default function Home() {
   const [company, setCompany] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
+  const [workMode, setWorkMode] = useState(""); // "" | "remote" | "hybrid" | "onsite"
   const [page, setPage] = useState(1);
   const [scrapedJobs, setScrapedJobs] = useState<Job[]>([]);
   const [scrapeError, setScrapeError] = useState("");
   const [isScrapingUrl, setIsScrapingUrl] = useState(false);
 
-  const filterParams = { search, company, location: locationFilter || undefined, date_from: getDateFrom(dateFilter) };
+  const filterParams = { search, company, location: locationFilter || undefined, date_from: getDateFrom(dateFilter), work_mode: workMode || undefined };
 
   const { data: jobs = [], isLoading } = useQuery({
-    queryKey: ["jobs", search, company, locationFilter, dateFilter, page],
+    queryKey: ["jobs", search, company, locationFilter, dateFilter, workMode, page],
     queryFn: () => fetchJobs({ ...filterParams, skip: (page - 1) * PAGE_SIZE, limit: PAGE_SIZE }),
   });
 
-  const { data: total = 0 } = useQuery({
-    queryKey: ["jobs-count", search, company, locationFilter, dateFilter],
+  const { data: totalCount = 0 } = useQuery({
+    queryKey: ["jobsCount", search, company, locationFilter, dateFilter, workMode],
     queryFn: () => fetchJobsCount(filterParams),
     enabled: scrapedJobs.length === 0,
   });
@@ -216,7 +217,7 @@ export default function Home() {
     queryFn: fetchCompanies,
   });
 
-  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const resetPage = () => setPage(1);
 
@@ -244,31 +245,19 @@ export default function Home() {
     resetPage();
   };
 
-  const handleCompanyFilter = (name: string) => {
-    setScrapedJobs([]);
-    setScrapeError("");
-    setSearch("");
-    setCompany(company === name ? "" : name);
-    resetPage();
-  };
-
-  const handleLocationChange = (loc: string) => {
-    setLocationFilter(loc);
-    resetPage();
-  };
-
   const clearAllFilters = () => {
     setSearch("");
     setCompany("");
     setLocationFilter("");
     setDateFilter("");
+    setWorkMode("");
     setScrapedJobs([]);
     setScrapeError("");
     resetPage();
   };
 
   const displayJobs = scrapedJobs.length > 0 ? scrapedJobs : jobs;
-  const activeFilterCount = [locationFilter, dateFilter].filter(Boolean).length;
+  const activeFilterCount = [locationFilter, dateFilter, workMode].filter(Boolean).length;
   const isFiltered = search || company || scrapedJobs.length > 0 || activeFilterCount > 0;
 
   return (
@@ -313,7 +302,7 @@ export default function Home() {
             {QUICK_FILTERS.map((name) => (
               <motion.button
                 key={name}
-                onClick={() => handleCompanyFilter(name)}
+                onClick={() => { setCompany(company === name ? "" : name); resetPage(); }}
                 whileHover={{ scale: 1.06 }}
                 whileTap={{ scale: 0.96 }}
                 className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors
@@ -327,29 +316,76 @@ export default function Home() {
           </motion.div>
 
           {/* Filter row */}
-          <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-3 pt-1">
-            <LocationPicker value={locationFilter} onChange={handleLocationChange} locations={locations} />
+          <motion.div variants={fadeUp} className="flex flex-col md:flex-row gap-3 mt-4 items-center justify-center">
+              <div className="w-full md:w-auto relative">
+                <select
+                  value={company}
+                  onChange={(e) => { setCompany(e.target.value); setPage(1); }}
+                  className="w-full md:w-auto appearance-none pl-10 pr-10 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
+                             rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-200 shadow-sm"
+                >
+                  <option value="">All companies</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+                <div className="absolute left-3.5 top-3 text-gray-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+              </div>
 
-            {/* Date filter */}
-            <div className="relative flex items-center">
-              <svg className="absolute left-2.5 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <select
-                value={dateFilter}
-                onChange={(e) => { setDateFilter(e.target.value); resetPage(); }}
-                className="pl-8 pr-6 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur text-gray-700 dark:text-gray-200
-                           focus:outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-200 appearance-none cursor-pointer"
-              >
-                {DATE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+              <div className="w-full md:w-auto z-20 hidden md:block border-l border-gray-200 dark:border-gray-700 h-6 mx-2" />
+
+              <div className="w-full md:w-auto">
+                <LocationPicker
+                  value={locationFilter}
+                  onChange={(v) => { setLocationFilter(v); setPage(1); }}
+                  locations={locations}
+                />
+              </div>
+
+              <div className="w-full md:w-auto relative">
+                <select
+                  value={dateFilter}
+                  onChange={(e) => { setDateFilter(e.target.value); setPage(1); }}
+                  className="w-full md:w-auto appearance-none pl-10 pr-10 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
+                             rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-700 dark:text-gray-200"
+                >
+                  {DATE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <div className="absolute left-3 top-2 text-gray-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
+
+              <div className="w-full md:w-auto z-20 hidden md:block border-l border-gray-200 dark:border-gray-700 h-6 mx-2" />
+              
+              {/* Work Mode Toggles */}
+              <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
+                {[
+                  { value: "remote", label: "Remote", icon: "🌍" },
+                  { value: "hybrid", label: "Hybrid", icon: "🏢" },
+                  { value: "onsite", label: "On-site", icon: "🏙" }
+                ].map((mode) => (
+                  <button
+                    key={mode.value}
+                    onClick={() => { setWorkMode(workMode === mode.value ? "" : mode.value); setPage(1); }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full border transition-all whitespace-nowrap
+                      ${workMode === mode.value 
+                        ? "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-medium" 
+                        : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"}`}
+                  >
+                    <span>{mode.icon}</span>
+                    {mode.label}
+                  </button>
                 ))}
-              </select>
-              <svg className="absolute right-2 w-3 h-3 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
+              </div>
 
             {isFiltered && (
               <button
@@ -388,11 +424,11 @@ export default function Home() {
               {scrapedJobs.length > 0
                 ? `${scrapedJobs.length} jobs scraped from URL`
                 : isFiltered
-                ? `${total} results`
-                : `${total} live jobs`}
+                ? `${totalCount} results`
+                : `${totalCount} live jobs`}
             </h2>
           )}
-          {!scrapedJobs.length && total > 0 && (
+          {!scrapedJobs.length && totalCount > 0 && (
             <span className="text-sm text-gray-400 dark:text-gray-500">
               Page {page} of {totalPages}
             </span>

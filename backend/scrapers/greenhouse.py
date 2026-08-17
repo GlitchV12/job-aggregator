@@ -2,6 +2,7 @@ import html as html_lib
 import httpx
 import re
 from datetime import datetime
+from models import detect_work_mode
 
 
 def _short_desc(html_text: str) -> str:
@@ -34,6 +35,7 @@ async def scrape(slug: str) -> list[dict]:
             "description": description,
             "short_description": _short_desc(description),
             "apply_url": item.get("absolute_url", ""),
+            "work_mode": detect_work_mode(item.get("title", ""), description),
             "scraped_at": datetime.utcnow(),
             "is_active": True,
         })
