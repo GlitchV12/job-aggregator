@@ -380,18 +380,20 @@ export default function JobModal({ job, onClose }: Props) {
         {/* Sticky footer */}
         <div className="p-4 border-t border-gray-100 dark:border-gray-800 shrink-0 space-y-2 bg-white dark:bg-gray-900">
           <div className="flex gap-2">
-            <button
-              onClick={() => window.open(applyUrl, "_blank", "noopener,noreferrer")}
+            <a
+              href={applyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex-1 flex items-center justify-center gap-2 px-5 py-3
                          bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl
-                         transition-all shadow-sm text-sm cursor-pointer"
+                         transition-all shadow-sm text-sm cursor-pointer no-underline"
             >
               Apply on Company Site
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
-            </button>
+            </a>
             {user && (
               <button
                 onClick={markAsApplied}
